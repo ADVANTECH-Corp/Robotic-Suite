@@ -1,0 +1,8 @@
+## 3D Camera
+
+| Type | Sensor | Brand | Model | Image | Specification | Interface | Info | Note |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| Camera | 3D Stereo | eYs3D | G53 | ![eYs3D G53](../img/ROS2_Suite_eYS3D-G53.jpg) | Optimal Range 10cm – 1.5M<br>Depth FOV (H x V) H50 x V32.5 Depth<br>Output Resolution Up to 640 x 400p<br>Frame Rate Up to 30FPS | USB 3.0 | [Official website](https://www.ecapturecamera.com/g53)<br>[Official github](https://github.com/eYs3D/HD-DM-ROS2-SDK-Release) |  |
+| Camera | Depth camera | Intel | D435i | ![Intel D435i](../img/260px-ROS2_Suite_realsense-D435i.png) | RGB: 1920×1080 30fps<br>Depth: Up to 1280x720 90fps<br>6-axis IMU | USB 3.0 | [Official website](https://www.intelrealsense.com/depth-camera-d435i/)<br>[Official github](https://github.com/IntelRealSense/realsense-ros) | [Known issues of realsense camera](Advantech_Robotic_Suite/Q&A#Known_issues_of_realsense_camera) |
+| Camera | Depth camera | Intel | D457 | ![Intel D457](../img/Robotic_Suite_realsense-D457.png) | RGB: 1280×800 30fps<br>Depth: Up to 1280x720 90fps<br>6-axis IMU | GMSL | [Official website](https://www.intelrealsense.com/depth-camera-d457/)<br>[Official github](https://github.com/IntelRealSense/realsense-ros) | * humble_x86:<br>  [camera driver](https://www.advantech.com/zh-tw/support/details/%E9%A9%85%E5%8B%95%E7%A8%8B%E5%BC%8F?id=1-32TMJ6S) |
+| Camera | 3D Stereo | Orbbec | gemini-335l | ![Orbbec gemini-335l](../img/Robotic_Suite_gemini-335l.png) | RGB: 1280x800 60fps<br>Depth: 1280x800 30fps<br>Depth Range: *0.17 - 20m+ (Optimal Range: 0.5 - 6m) | USB 3.0 | [Official website](https://www.orbbec.com/products/stereo-vision-camera/gemini-335l/)<br>[Official github](https://github.com/orbbec/OrbbecSDK_ROS2) |  |
