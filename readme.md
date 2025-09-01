@@ -35,4 +35,8 @@ Stack](./img/AdvantechRoboticSuite.jpg "Advantech Robotic Suite SW Stack")
 
 ## Compatible Peripheral
 - [2D Camera](./compatible_peripheral/2d_camera.md)
-- [3D Camera](./compatible_peripheral/3d_camera.md)   
+- [3D Camera](./compatible_peripheral/3d_camera.md)
+- [2D LiDAR](./compatible_peripheral/3d_lidar.md)   
+- [3D LiDAR](./compatible_peripheral/3d_lidar.md)   
+- [IMU](./compatible_peripheral/imu.md)
+- [AMR](./compatible_peripheral/amr.md)   

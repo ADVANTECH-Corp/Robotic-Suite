@@ -22,14 +22,8 @@ platform info with SUSI Node.
 ![susi_node_KYBvx2W.png](../img/Susi_node_dds.png "susi_node_KYBvx2W.png")
  
 
- 
 
-## SUSI Data Category: {#susi_data_category}
-
-\
-\
-
-# Topic definition {#topic_definition}
+# Topic definition
 
 The topic of SUSIControl node is defined as below:
 
@@ -37,7 +31,7 @@ The topic of SUSIControl node is defined as below:
 
  
 
-# Message definition {#message_definition}
+# Message definition
 
 The messages definition of SUSI node is defined in below link:
 
@@ -45,12 +39,12 @@ The messages definition of SUSI node is defined in below link:
 
  
 
-# Message update {#message_update}
+# Message update
 
 The message is updated periodically in 10 seconds, you can use ROS2
 utility to verify the data update:
 
-#### Subscribe Sensor using ROS2 utility {#subscribe_sensor_using_ros2_utility}
+#### Subscribe Sensor using ROS2 utility
 
 Step1. Setup ROS2 environmant variables:
 
@@ -166,7 +160,7 @@ output:
 
  
 
-# Sample Client {#sample_client}
+# Sample Client
 
 This session describe how to subscribe SUSIControl node data by
 SUSIControl node topic.
@@ -179,7 +173,7 @@ follow below steps to run the program, when the program launched, it
 will subscribe SUSI node\'s sensor and print the data in the console
 screen.
 
-#### Subscribe Sensor {#subscribe_sensor}
+#### Subscribe Sensor
 
 Step1. Setup ROS2 environmant variables, replace \${ROS_DISTRO} with
 your ROS2 distribution (foxy, humble) to run this command:
@@ -237,7 +231,7 @@ Step5. Verify received data:
 \
  
 
-#### Set sensor {#set_sensor}
+#### Set sensor
 
 This session describe how to set SUSI node data by set action. To run
 the set sensor sample, your device need have writable sensor supported
@@ -277,7 +271,7 @@ Step5. Received data:
 \
  
 
-#### Use Case: EPC-R3720 GPIO Usage {#use_case_epc_r3720_gpio_usage}
+#### Use Case: EPC-R3720 GPIO Usage
 
 This case is a demonstration to instruct EPC-R3720 GPIO configuration
 and usage.
@@ -385,7 +379,7 @@ Step8. Verify received data:
 \
 \
 
-#### Use Case: MIO-5375 GPIO Usage {#use_case_mio_5375_gpio_usage}
+#### Use Case: MIO-5375 GPIO Usage
 
 This case is a demonstration to instruct MIO-5375 GPIO configuration and
 usage.

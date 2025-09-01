@@ -1,0 +1,8 @@
+## 2D Lidar
+
+| Type | Sensor | Brand | Model | Image | Specification | Interface | Info | Note |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| Lidar | 360 lidar | Slamtec | A1M8 | ![Slamtec A1M8](../img/ROS2_Suite_Slamtec-A1M8.jpg) | Scan speed: 8 KHz<br>Range: 0.15–6 Meters<br>Horizontal scan angle: 360°<br>Horizontal scan speed: 2-10Hz<br>For SLAM or Navigation | USB | [Official website](https://www.slamtec.com/en/Lidar/A1)<br>[Official github](https://github.com/Slamtec/rplidar_ros) |  |
+| Lidar | 360 lidar | Slamtec | A2M12 | ![Slamtec A2M12](../img/200px-ROS2_Suite_Slamtec-A2M12.png) | Scan speed: 8-16 KHz<br>Range: 0.2–16 Meters<br>Horizontal scan angle: 360°<br>Horizontal scan speed: 5-15Hz<br>For SLAM or Navigation | USB | [Official website](https://www.slamtec.ai/home/rplidar_a2/)<br>[Official github](https://github.com/Slamtec/rplidar_ros) |  |
+| Lidar | 2D lidar | SICK | NanoScan3 | ![SICK NanoScan3](../img/200px-ROS2_Suite_SICK-nanoScan.png) | Scanning angle: 275°<br>Protective field range: 3m<br>Warning field range: 10m<br>Response time: ≥70ms | USB | [Official website](https://www.sick.com/tw/en/safety-laser-scanners/safety-laser-scanners/nanoscan3/c/g507056)<br>[Official github](https://github.com/SICKAG/sick_safetyscanners2) |  |
+| Lidar | 2D lidar | AOCI | SapphireS_S | ![AOCI SapphireS_S](../img/200px-ROS2_Suite_AOCI-SapphireS_S.png) | Horizontal angle: 360°<br>Range: 30m<br>Scanning frequency: 10Hz<br>Angular resolution: 0.5° | Ethernet | [Official website](https://www.asia-optical.com/product_detail_2.php?serial=409&lang=en) | Please contact AOCI for more ROS driver information and assistance. |
