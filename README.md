@@ -19,7 +19,7 @@ including:
   These provide motion control, visualization, sensor fusion, SLAM, and autonomous navigation out of the box.
 
 * **[Isaac ROS](https://github.com/NVIDIA-ISAAC-ROS)** – NVIDIA GPU–accelerated perception and robotics pipelines, including:
-  `isaac_ros_nvblox`, `isaac_ros_visual_slam`, `isaac_ros_yolov8`,
+  `isaac_ros_nvblox`, `isaac_ros_visual_slam`,
   `isaac_ros_unet`, `isaac_ros_centerpose`, `isaac_ros_occupancy_grid_localizer`  
   These packages cover 3D reconstruction, visual SLAM, object detection, segmentation, pose estimation, and local occupancy mapping for high-performance perception workloads.
   <p align="center">
