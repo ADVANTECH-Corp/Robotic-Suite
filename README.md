@@ -24,7 +24,6 @@ including:
   These packages cover 3D reconstruction, visual SLAM, object detection, segmentation, pose estimation, and local occupancy mapping for high-performance perception workloads.
   <p align="center">
     <img src="./img/development_environment/isaac_ros/isaac_ros_visual_slam.gif" height="120px" style="margin-right: 40px;" />
-    <img src="./img/development_environment/isaac_ros/isaac_ros_yolov8.png" height="120px" style="margin-right: 40px;" />
     <img src="./img/development_environment/isaac_ros/isaac_ros_unet.png" height="120px" style="margin-right: 40px;" />
     <img src="./img/development_environment/isaac_ros/isaac_ros_centerpose.png" height="120px" />
   </p>
