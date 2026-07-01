@@ -144,21 +144,8 @@ Primary purposes:
   <img src="../../../img/development_environment/isaac_ros/isaac_ros_visual_slam.gif" width="80%" />
 </p>
 
-### 5.3 isaac_ros_yolov8
 
-- Purpose: YOLOv8 object detection inference for real-time detection and perception integration.
-- Run:
-  ```bash
-  ./launch_isaac.sh basic_examples/isaac_ros_yolov8
-  ```
-- Official docs:
-  - https://nvidia-isaac-ros.github.io/v/release-3.2/repositories_and_packages/isaac_ros_object_detection/isaac_ros_yolov8/index.html
-  
-<p align="center">
-  <img src="../../../img/development_environment/isaac_ros/isaac_ros_yolov8.png" width="50%" />
-</p>
-
-### 5.4 isaac_ros_unet
+### 5.3 isaac_ros_unet
 
 - Purpose: UNet-based semantic segmentation workflow, useful for scene understanding, traversability, and foreground/background separation.
 - Run:
@@ -172,7 +159,7 @@ Primary purposes:
   <img src="../../../img/development_environment/isaac_ros/isaac_ros_unet.png" width="80%" />
 </p>
 
-### 5.5 isaac_ros_centerpose
+### 5.4 isaac_ros_centerpose
 
 - Purpose: 6DoF pose estimation, commonly used for grasping, pose tracking, and alignment tasks.
 - Run:
@@ -186,7 +173,7 @@ Primary purposes:
   <img src="../../../img/development_environment/isaac_ros/isaac_ros_centerpose.png" width="50%" />
 </p>
 
-### 5.6 isaac_ros_occupancy_grid_localizer
+### 5.5 isaac_ros_occupancy_grid_localizer
 
 - Purpose: Localization on a 2D occupancy grid map (common in indoor navigation / AMR scenarios) to estimate the robot pose on a known map.
 - Run:
