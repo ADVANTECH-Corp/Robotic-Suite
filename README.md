@@ -9,6 +9,11 @@ It is more than just an SDK – it is a complete development and execution ecosy
   <img src="./img/RoboticSuiteStack.png" width="100%" />
 </p>
 
+## Support & Community
+- Advantech AIM-Linux Community: https://forum.aim-linux.advantech.com/c/robotics-autonomous-systems-ros-ros2/40 
+- Robotics Suite is thumbs up or down? Fork, use and take polls while getting your chance to win a developer grand prize. 
+https://forum.aim-linux.advantech.com/t/fork-test-and-critique-good-or-bad-tell-us-what-you-think-about-the-robotics-suite/1479 
+
 # What’s Included
 Robotic Suite bundles the key software components typically needed for modern AMR development:  
 
