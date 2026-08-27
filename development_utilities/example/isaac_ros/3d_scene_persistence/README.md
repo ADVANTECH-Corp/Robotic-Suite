@@ -16,7 +16,7 @@ This example demonstrates how to use a 3D camera and adjust [ISAAC Nvblox](https
 > - Use the English language environment in Ubuntu OS  
 ---
 
-* After selecting and installing Multi Sensor Function by following the instructions in the installer instructions.
+* After selecting and installing 3D Scene Persistence by following the instructions in the installer instructions.
 You will find the isaac_ros_kit folder under ` /usr/local/Advantech/ros/container/ros-demokit/ `
 
 * Navigate to the folder and run the following command:
