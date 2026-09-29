@@ -14,9 +14,15 @@ This example demonstrates how to use multiple sensor data sources simultaneously
 > - At least 3 GB hard drive free space  
 > - An active Internet connection is required  
 > - Use the English language environment in Ubuntu OS  
+
+> [!WARNING]
+> **YOLOv8 Model Requirements**
+> Due to licensing restrictions, the pre-converted YOLOv8 model file (`yolov8s.plan`) is **NOT included** in this package.
+> Before running this example, you must export the YOLOv8 model following the [NVIDIA Isaac ROS YOLOv8 Documentation](https://nvidia-isaac-ros.github.io/repositories_and_packages/isaac_ros_object_detection/isaac_ros_yolov8/) and place `yolov8s.plan` into:
+> `/home/ubuntu/workspaces/isaac_ros-dev/isaac_ros_assets/models/yolov8/yolov8s.plan`
 ---
 
-* After selecting and installing Multi Sensor Function by following the instructions in the installer instructions.
+* After selecting and installing Multi Sensor Function by following the installer instructions.
 You will find the isaac_ros_kit folder under /usr/local/Advantech/ros/container/ros-demokit/
 
 * Navigate to the folder and run the following command:
