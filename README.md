@@ -86,7 +86,7 @@ Robotic Suite is optimized and validated on selected Advantech platforms, includ
   <img src="./img/ASRA503.png" width="27%" />
 </p>
 
-- [AFE-D501](https://www.advantech.com/zh-tw/products/8d5aadd0-1ef5-4704-a9a1-504718fb3b41/asr-d501/mod_63b146af-58b3-422f-a7e2-d1984f53b698)  
+- [ASR-D501](https://www.advantech.com/zh-tw/products/8d5aadd0-1ef5-4704-a9a1-504718fb3b41/asr-d501/mod_63b146af-58b3-422f-a7e2-d1984f53b698)  
     Qualcomm® QCS6490 Compact companion/mission computer
 <p align="center">
   <img src="./img/ASRD501.png" width="27%" style="margin-right: 10px;" />
