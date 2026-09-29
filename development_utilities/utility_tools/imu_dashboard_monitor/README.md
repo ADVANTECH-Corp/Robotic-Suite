@@ -1,4 +1,3 @@
-# Not yet released, please do not distribute.
 # ROS 2 IMU Dashboard Monitor
 
 A simple ROS 2 dashboard sample for monitoring IMU-related topics in real time.
