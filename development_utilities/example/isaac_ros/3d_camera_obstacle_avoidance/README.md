@@ -1,4 +1,4 @@
-# 3D Camera Obstacle Avoidance
+<img width="612" height="81" alt="image" src="https://github.com/user-attachments/assets/a001e5ae-1456-4189-8f3a-822a62a4b9e6" /># 3D Camera Obstacle Avoidance
 
 This example demonstrates how to use a 3D camera together with [ISAAC Nvblox](https://github.com/nvidia-isaac/nvblox) and [Nav2](https://github.com/ros-navigation/navigation2) to enable navigation and obstacle avoidance on an AMR platform.
 
@@ -19,7 +19,7 @@ This example demonstrates how to use a 3D camera together with [ISAAC Nvblox](ht
 > - Use the English language environment in Ubuntu OS  
 ---
 
-* After selecting and installing 3D Camera Obstacle Avoidance by following the instructions in the installer instructions.
+* After selecting and installing 3D Camera Obstacle Avoidance by following the installer instructions.
 You will find the isaac_ros_kit folder under /usr/local/Advantech/ros/container/ros-demokit/
 
 * Navigate to the folder and run the following command:
