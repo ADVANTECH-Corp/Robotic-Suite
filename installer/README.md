@@ -1,6 +1,6 @@
 # Download
 
-Download [adv-robotic-suite-installer.run](./adv-robotic-suite-installer.tar.gz)
+Download **adv-robotic-suite-installer.tar.gz** and extract it.
 
 # Install
 
