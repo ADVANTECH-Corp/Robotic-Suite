@@ -5,10 +5,15 @@ This document describes the **isaac_ros_base / Isaac ROS container development a
 > [!NOTE]
 > - When running an example for the first time, it may automatically download/install required resources (e.g., models, datasets, dependencies). This is expected and may take longer.
 
+<a id="supported-versions"></a>
 > [!TIP]
-> **Version Information (Default Environment)**
-> - Isaac ROS: **v3.2 (release-3.2)**
-> - ROS 2: **Humble**
+> **Supported Versions**
+>
+> This document applies to the following Isaac ROS and ROS 2 combinations:
+> | **Isaac ROS** | **ROS 2** | **tensorrt** |
+> | --- | --- | --- |
+> | v3.2 (release-3.2) | Humble | v10.7.0 |
+> | v4.5 (release-4.5) | Jazzy | v10.13.3 |
 
 ---
 
@@ -41,7 +46,7 @@ Reference:
 > [!NOTE]
 > **Make sure your target system satisfies the following conditions:**
 > - Advantech platforms
-> - At least 30 GB hard drive free space
+> - At least 50 GB hard drive free space
 > - An active Internet connection is required
 > - Use the English language environment in Ubuntu OS
 
@@ -124,7 +129,8 @@ Primary purposes:
   ./launch_isaac.sh basic_examples/isaac_ros_nvblox
   ```
 - Official docs:
-  - https://nvidia-isaac-ros.github.io/v/release-3.2/repositories_and_packages/isaac_ros_nvblox/isaac_ros_nvblox/index.html
+  - [NVIDIA Isaac ROS Nvblox Documentation v3.2](https://nvidia-isaac-ros.github.io/v/release-3.2/repositories_and_packages/isaac_ros_nvblox/isaac_ros_nvblox/index.html)
+  - [NVIDIA Isaac ROS Nvblox Documentation v4.5](https://nvidia-isaac-ros.github.io/v/release-4.5/repositories_and_packages/isaac_ros_nvblox/isaac_ros_nvblox/index.html)
 
 <p align="center">
   <img src="../../../img/development_environment/isaac_ros/isaac_ros_nvblox.gif" width="80%" />
@@ -138,14 +144,38 @@ Primary purposes:
   ./launch_isaac.sh basic_examples/isaac_ros_visual_slam
   ```
 - Official docs:
-  - https://nvidia-isaac-ros.github.io/v/release-3.2/repositories_and_packages/isaac_ros_visual_slam/isaac_ros_visual_slam/index.html
+  - [NVIDIA Isaac ROS Visual SLAM Documentation v3.2](https://nvidia-isaac-ros.github.io/v/release-3.2/repositories_and_packages/isaac_ros_visual_slam/isaac_ros_visual_slam/index.html)
+  - [NVIDIA Isaac ROS Visual SLAM Documentation v4.5](https://nvidia-isaac-ros.github.io/v/release-4.5/repositories_and_packages/isaac_ros_visual_slam/isaac_ros_visual_slam/index.html)
 
 <p align="center">
   <img src="../../../img/development_environment/isaac_ros/isaac_ros_visual_slam.gif" width="80%" />
 </p>
 
+### 5.3 isaac_ros_yolov8
 
-### 5.3 isaac_ros_unet
+- Purpose: YOLOv8 object detection inference for real-time detection and perception integration.
+- Run:
+  ```bash
+  ./launch_isaac.sh basic_examples/isaac_ros_yolov8
+  ```
+- Official docs:
+  - [NVIDIA Isaac ROS YOLOv8 Documentation v3.2](https://nvidia-isaac-ros.github.io/v/release-3.2/repositories_and_packages/isaac_ros_object_detection/isaac_ros_yolov8/index.html)
+  - [NVIDIA Isaac ROS YOLOv8 Documentation v4.5](https://nvidia-isaac-ros.github.io/v/release-4.5/repositories_and_packages/isaac_ros_object_detection/isaac_ros_yolov8/index.html)
+
+> [!WARNING]
+> **YOLOv8 Model Requirements**
+>
+> * Due to licensing restrictions, the pre-converted YOLOv8 model file (`yolov8s.plan`) is **NOT included** in this package.
+> 
+> * **TensorRT Version Compatibility:** The TensorRT engine (`.plan`) must be generated using the **same TensorRT version as the provided Isaac ROS container**. See [Supported Versions](#supported-versions) for the TensorRT version provided by each container.
+> 
+> * Before running this example, you must export the YOLOv8 model following the [NVIDIA Isaac ROS YOLOv8 Documentation](https://nvidia-isaac-ros.github.io/repositories_and_packages/isaac_ros_object_detection/isaac_ros_yolov8/) and place `yolov8s.plan` into: `/home/ubuntu/workspaces/isaac_ros-dev/isaac_ros_assets/models/yolov8/yolov8s.plan`
+  
+<p align="center">
+  <img src="../../../img/development_environment/isaac_ros/isaac_ros_yolov8.png" width="50%" />
+</p>
+
+### 5.4 isaac_ros_unet
 
 - Purpose: UNet-based semantic segmentation workflow, useful for scene understanding, traversability, and foreground/background separation.
 - Run:
@@ -153,13 +183,14 @@ Primary purposes:
   ./launch_isaac.sh basic_examples/isaac_ros_unet
   ```
 - Official docs:
-  - https://nvidia-isaac-ros.github.io/v/release-3.2/repositories_and_packages/isaac_ros_image_segmentation/isaac_ros_unet/index.html
+  - [NVIDIA Isaac ROS Unet Documentation v3.2](https://nvidia-isaac-ros.github.io/v/release-3.2/repositories_and_packages/isaac_ros_image_segmentation/isaac_ros_unet/index.html)
+  - [NVIDIA Isaac ROS Unet Documentation v4.5](https://nvidia-isaac-ros.github.io/v/release-4.5/repositories_and_packages/isaac_ros_image_segmentation/isaac_ros_unet/index.html)
 
 <p align="center">
   <img src="../../../img/development_environment/isaac_ros/isaac_ros_unet.png" width="80%" />
 </p>
 
-### 5.4 isaac_ros_centerpose
+### 5.5 isaac_ros_centerpose
 
 - Purpose: 6DoF pose estimation, commonly used for grasping, pose tracking, and alignment tasks.
 - Run:
@@ -167,13 +198,14 @@ Primary purposes:
   ./launch_isaac.sh basic_examples/isaac_ros_centerpose
   ```
 - Official docs:
-  - https://nvidia-isaac-ros.github.io/v/release-3.2/repositories_and_packages/isaac_ros_pose_estimation/isaac_ros_centerpose/index.html
+  - [NVIDIA Isaac ROS Center Pose Documentation v3.2](https://nvidia-isaac-ros.github.io/v/release-3.2/repositories_and_packages/isaac_ros_pose_estimation/isaac_ros_centerpose/index.html)
+  - [NVIDIA Isaac ROS Center Pose Documentation v4.5](https://nvidia-isaac-ros.github.io/v/release-4.5/repositories_and_packages/isaac_ros_pose_estimation/isaac_ros_centerpose/index.html)
   
 <p align="center">
   <img src="../../../img/development_environment/isaac_ros/isaac_ros_centerpose.png" width="50%" />
 </p>
 
-### 5.5 isaac_ros_occupancy_grid_localizer
+### 5.6 isaac_ros_occupancy_grid_localizer
 
 - Purpose: Localization on a 2D occupancy grid map (common in indoor navigation / AMR scenarios) to estimate the robot pose on a known map.
 - Run:
@@ -181,10 +213,26 @@ Primary purposes:
   ./launch_isaac.sh basic_examples/isaac_ros_occupancy_grid_localizer
   ```
 - Official docs:
-  - https://nvidia-isaac-ros.github.io/v/release-3.2/repositories_and_packages/isaac_ros_mapping_and_localization/isaac_ros_occupancy_grid_localizer/index.html
+  - [NVIDIA Isaac ROS Occupancy Grid Localizer Documentation v3.2](https://nvidia-isaac-ros.github.io/v/release-3.2/repositories_and_packages/isaac_ros_mapping_and_localization/isaac_ros_occupancy_grid_localizer/index.html)
+  - [NVIDIA Isaac ROS Occupancy Grid Localizer Documentation v4.5](https://nvidia-isaac-ros.github.io/v/release-4.5/repositories_and_packages/isaac_ros_mapping_and_localization/isaac_ros_occupancy_grid_localizer/index.html)
   
 <p align="center">
   <img src="../../../img/development_environment/isaac_ros/isaac_ros_occupancy_grid_localizer.png" width="80%" />
+</p>
+
+### 5.7 isaac_ros_cumotion_moveit
+
+- Purpose: GPU-accelerated robot motion planning and collision avoidance for manipulation applications, enabling fast and collision-free trajectory generation for robotic arms.
+- Run:
+  ```bash
+  ./launch_isaac.sh basic_examples/isaac_ros_cumotion_moveit
+  ```
+- Official docs:
+  - [NVIDIA Isaac ROS Cumotion MoveIt Documentation v3.2](https://nvidia-isaac-ros.github.io/v/release-3.2/repositories_and_packages/isaac_ros_cumotion/index.html)
+  - [NVIDIA Isaac ROS Cumotion MoveIt Documentation v4.5](https://nvidia-isaac-ros.github.io/v/release-4.5/repositories_and_packages/isaac_ros_cumotion/index.html)
+  
+<p align="center">
+  <img src="../../../img/development_environment/isaac_ros/isaac_ros_cumotion_moveit.gif" width="80%" />
 </p>
 
 ---
@@ -205,4 +253,5 @@ You can build your own app with this pattern:
    ```bash
    ./launch_isaac.sh <your_app_path>
    ```
+
 
