@@ -37,7 +37,7 @@ On GPU-enabled or high-performance edge platforms, Autoware is often deployed us
 
 ## 2. Why Use This Package (Benefits & What Autoware development containe Provides)
 
-Autoware development containe provides a ready-to-use Autoware development environment packaged inside a container.
+Autoware development container provides a ready-to-use Autoware development environment packaged inside a container.
 
 It enables users to quickly validate Autoware capabilities and develop their own autonomous driving applications on Advantech platforms.
 
