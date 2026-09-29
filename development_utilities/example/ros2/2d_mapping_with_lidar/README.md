@@ -1,4 +1,4 @@
-# 2D Mapping With LiDAR
+# 2D LiDAR Mapping
 
 This example uses a 2D LiDAR mounted on an AMR together with [slam_toolbox](https://github.com/SteveMacenski/slam_toolbox) to demonstrate how to generate a 2D map.
 
@@ -16,23 +16,39 @@ This example uses a 2D LiDAR mounted on an AMR together with [slam_toolbox](http
 > - Use the English language environment in Ubuntu OS  
 ---
 
-* After selecting and installing 2D Mapping with LiDAR by following the instructions in the installer instructions.
+* After selecting and installing 2D Mapping with LiDAR by following the installer instructions.
 You will find the 2d-slam-ros2 folder under ` /usr/local/Advantech/ros/container/ros-demokit/ `
 
-* Navigate to the folder and run the following command:
-
+* Navigate to the example folder and launch it by specifying the ROS 2 distribution:
 
 ```bash
-./launch.sh humble
+./launch.sh <ros_distro>
 ```
 
-* The 2D Mapping with LiDAR will be displayed automatically:
+Replace `<ros_distro>` with the ROS 2 distribution detected and installed by Robotic Suite during installation.
+
+| ROS 2 distribution | Launch command |
+|---|---|
+| ROS 2 Humble | `./launch.sh humble` |
+| ROS 2 Jazzy | `./launch.sh jazzy` |
+
+For example, to launch the ROS 2 Jazzy environment:
+
+```bash
+./launch.sh jazzy
+```
+
 > [!NOTE]
-> The first time you run this program, it needs to download necessary files, which will take some time.
+> The specified ROS 2 distribution must match the version installed by Robotic Suite. The installed version may vary depending on the ROS 2 distributions supported by the target system.
+
+* The 2D Mapping with LiDAR will be displayed automatically:
 
 <p align="center">
     <img src="../../../../img/example/2DMappingWithLidar.png" width="80%" />
 </p>
+
+> [!NOTE]
+> The first time you run this program, it needs to download necessary files, which will take some time.
 
 # Configuration Guide
 This example demonstrates the basic workflow of creating a 2D map using:
