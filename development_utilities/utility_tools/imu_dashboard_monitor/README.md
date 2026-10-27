@@ -10,9 +10,6 @@ It is intended for demos, sensor bring-up, and visual monitoring of sampled ROS 
   <img src="../../../img/core_techniques/imuDashboard.jpg" width="50%" />
 </p>
 
-The screenshot above shows an earlier UI. Build `100hz-r3-ui` adds separate RX and Processed rates, a processing-limit label, and waiting/measuring/idle states.
-
-
 ---
 
 ## Features
@@ -264,7 +261,7 @@ python3 ros2_imu_dashboard_monitor.py --ros-args \
   -p plot_update_ms:=80
 ```
 
-The default `ui_update_ms` is still 100 ms in this example. Because plot timing is checked inside the UI update loop, `plot_update_ms:=80` cannot produce independent redraws every 80 ms while that UI setting remains in effect. The plot can be requested on each UI update, with actual timing affected by rendering and scheduling. This timing relationship also existed in the original version.
+The default `ui_update_ms` is still 100 ms in this example. Because plot timing is checked inside the UI update loop, `plot_update_ms:=80` cannot produce independent redraws every 80 ms while that UI setting remains in effect. The plot can be requested on each UI update, with actual timing affected by rendering and scheduling.
 
 ---
 
