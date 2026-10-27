@@ -2,6 +2,8 @@
 """
 ROS 2 IMU Dashboard Monitor
 
+Build: 100hz-r3-ui (separate receive and processing rates)
+
 Displayed data:
   1. 3-axis acceleration       sensor_msgs/msg/Imu
   2. 3-axis angular velocity   sensor_msgs/msg/Imu
@@ -11,8 +13,25 @@ Displayed data:
 This sample is a ROS 2 topic monitor and dashboard.
 It does not publish commands and does not control hardware.
 
+Processing limit:
+  Each of the IMU, magnetic-field and Euler subscriptions processes at most
+  100 samples/second independently. Samples arriving less than 10 ms after the
+  last accepted sample are skipped immediately, without sleeping or queuing.
+  DDS reception/deserialization and callback dispatch still occur at the
+  incoming rate; this does not change the publisher's rate or network traffic.
+  RX counts subscription callbacks before the processing limit. Processed
+  counts samples actually used to update the dashboard state. Neither is
+  the GUI frame rate, and RX is not a measurement inside the publisher.
+  Both rates use a monotonic clock and show a measuring/idle status rather
+  than an unmeasured zero or an old rate after data stops.
+  The processing limit and all existing ROS parameters are unchanged.
+
+Stability fix:
+  Non-finite Euler samples are discarded before modifying shared state.
+  Angle normalization uses bounded arithmetic instead of an unbounded loop.
+
 Example:
-  python3 ros2_imu_dashboard_monitor.py --ros-args \
+  python3 'ros2_imu_dashboard_monitor.py' --ros-args \
     -p imu_topic:=/imu/data \
     -p mag_topic:=/imu/mag \
     -p euler_topic:=/filter/euler \
@@ -39,6 +58,12 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 # ============================================================
 # Configuration
 # ============================================================
+# Fixed processing ceiling per topic, independent of the GUI refresh rate.
+MAX_TOPIC_PROCESS_HZ = 100
+MIN_TOPIC_PROCESS_INTERVAL_NS = 1_000_000_000 // MAX_TOPIC_PROCESS_HZ
+DASHBOARD_BUILD = "100hz-r3-ui"
+
+
 @dataclass
 class DashboardConfig:
     # ROS topics
@@ -168,9 +193,15 @@ def normalize_angle_delta(value, half_range, full_range):
     This keeps internal angle changes continuous when the Euler output
     crosses the +180/-180 boundary.
     """
-    while value > half_range:
+    if not math.isfinite(value):
+        raise ValueError("Angle delta must be finite")
+
+    # fmod preserves the original +180/-180 endpoint convention. Its cost
+    # does not grow with the angle, unlike repeated subtraction/addition.
+    value = math.fmod(value, full_range)
+    if value > half_range:
         value -= full_range
-    while value < -half_range:
+    elif value < -half_range:
         value += full_range
     return value
 
@@ -188,6 +219,68 @@ def limit_angle_for_demo_display(value, half_range):
 # ============================================================
 # Shared State
 # ============================================================
+class MessageRate:
+    """Bounded rate statistics; callers hold the shared-state lock.
+
+    The first event is a timing baseline, not an elapsed interval. An idle
+    rate is hidden after 2 seconds or 3 measured periods, whichever is longer,
+    so slow topics are not incorrectly treated as stopped between samples.
+    """
+
+    def __init__(self):
+        self.start_ns = None
+        self.last_ns = None
+        self.count = 0
+        self.hz = None
+
+    def idle_after_ns(self):
+        if self.hz is None or self.hz <= 0.0:
+            return 2_000_000_000
+        return max(2_000_000_000, 3_000_000_000 / self.hz)
+
+    def record(self, now_ns):
+        if (
+            self.last_ns is not None
+            and self.hz is not None
+            and now_ns - self.last_ns >= self.idle_after_ns()
+        ):
+            self.start_ns = None
+            self.count = 0
+            self.hz = None
+
+        if self.start_ns is None:
+            self.start_ns = now_ns
+        else:
+            self.count += 1
+            elapsed_ns = now_ns - self.start_ns
+            if elapsed_ns >= 1_000_000_000:
+                self.hz = self.count * 1_000_000_000 / elapsed_ns
+                self.count = 0
+                self.start_ns = now_ns
+
+        self.last_ns = now_ns
+
+    def snapshot(self, now_ns):
+        age_ns = None if self.last_ns is None else now_ns - self.last_ns
+        idle = age_ns is not None and age_ns >= self.idle_after_ns()
+        return {
+            "hz": None if idle else self.hz,
+            "age_sec": None if age_ns is None else age_ns / 1_000_000_000,
+            "idle": idle,
+        }
+
+
+def format_rate_text(label, rate):
+    """Keep waiting, measuring and idle states distinct from a measured Hz."""
+    if rate["age_sec"] is None:
+        return f"{label}: waiting"
+    if rate["idle"]:
+        return f"{label}: idle {rate['age_sec']:.1f}s"
+    if rate["hz"] is None:
+        return f"{label}: measuring..."
+    return f"{label}: {rate['hz']:.1f} Hz"
+
+
 class ImuDashboardState:
     def __init__(self, config: DashboardConfig):
         self.config = config
@@ -199,13 +292,10 @@ class ImuDashboardState:
         self.mag_hz = 0.0
         self.euler_hz = 0.0
 
-        self._imu_count = 0
-        self._mag_count = 0
-        self._euler_count = 0
-
-        self._imu_last_count_time = time.time()
-        self._mag_last_count_time = time.time()
-        self._euler_last_count_time = time.time()
+        self._rx_rates = {key: MessageRate() for key in ("imu", "mag", "euler")}
+        self._processed_rates = {
+            key: MessageRate() for key in ("imu", "mag", "euler")
+        }
 
         self.acc = {"x": 0.0, "y": 0.0, "z": 0.0}
         self.gyro = {"x": 0.0, "y": 0.0, "z": 0.0}
@@ -231,16 +321,17 @@ class ImuDashboardState:
         self.pitch_buf = deque(maxlen=config.plot_buffer_len)
         self.yaw_buf = deque(maxlen=config.plot_buffer_len)
 
-    def _update_hz(self, count_attr, last_time_attr, hz_attr):
-        now = time.time()
-        count = getattr(self, count_attr)
-        last = getattr(self, last_time_attr)
-        dt = now - last
+    def record_rx(self, topic_key):
+        """Count actual callback arrivals, including samples skipped later."""
+        now_ns = time.monotonic_ns()
+        with self.lock:
+            self._rx_rates[topic_key].record(now_ns)
 
-        if dt >= 1.0:
-            setattr(self, hz_attr, count / dt)
-            setattr(self, count_attr, 0)
-            setattr(self, last_time_attr, now)
+    def _update_hz(self, topic_key):
+        # Called only after a sample has actually updated shared state.
+        rate = self._processed_rates[topic_key]
+        rate.record(time.monotonic_ns())
+        setattr(self, f"{topic_key}_hz", rate.hz if rate.hz is not None else 0.0)
 
     def update_imu(self, msg: Imu):
         now = time.time()
@@ -255,8 +346,7 @@ class ImuDashboardState:
             self.gyro["y"] = msg.angular_velocity.y
             self.gyro["z"] = msg.angular_velocity.z
 
-            self._imu_count += 1
-            self._update_hz("_imu_count", "_imu_last_count_time", "imu_hz")
+            self._update_hz("imu")
 
     def update_mag(self, msg: MagneticField):
         now = time.time()
@@ -267,19 +357,28 @@ class ImuDashboardState:
             self.mag["y"] = msg.magnetic_field.y
             self.mag["z"] = msg.magnetic_field.z
 
-            self._mag_count += 1
-            self._update_hz("_mag_count", "_mag_last_count_time", "mag_hz")
+            self._update_hz("mag")
 
     def update_euler(self, msg: Vector3Stamped):
         now = time.time()
         cfg = self.config
 
-        with self.lock:
-            self.last_any_msg_time = now
+        raw_roll = maybe_rad_to_deg(msg.vector.x, cfg)
+        raw_pitch = maybe_rad_to_deg(msg.vector.y, cfg)
+        raw_yaw = maybe_rad_to_deg(msg.vector.z, cfg)
+        raw_values = (("roll", raw_roll), ("pitch", raw_pitch), ("yaw", raw_yaw))
+        if not all(math.isfinite(value) for _, value in raw_values):
+            return
 
-            raw_roll = maybe_rad_to_deg(msg.vector.x, cfg)
-            raw_pitch = maybe_rad_to_deg(msg.vector.y, cfg)
-            raw_yaw = maybe_rad_to_deg(msg.vector.z, cfg)
+        with self.lock:
+            # Even two finite floats can overflow when subtracted. Reject the
+            # whole sample before changing zero offsets, history or counters.
+            for key, raw_value in raw_values:
+                previous = self._last_raw_euler[key]
+                if previous is not None and not math.isfinite(raw_value - previous):
+                    return
+
+            self.last_any_msg_time = now
 
             # Demo zeroing:
             # 1. The first received Euler value becomes Roll/Pitch/Yaw = 0.
@@ -324,11 +423,7 @@ class ImuDashboardState:
             # Instead of plotting raw Euler angle directly, accumulate the
             # corrected delta. This fixes cases like 179 -> -179, which should
             # be +2 degrees, not -358 degrees.
-            for key, raw_value in (
-                ("roll", raw_roll),
-                ("pitch", raw_pitch),
-                ("yaw", raw_yaw),
-            ):
+            for key, raw_value in raw_values:
                 last_raw = self._last_raw_euler[key]
 
                 if last_raw is None:
@@ -382,13 +477,21 @@ class ImuDashboardState:
             self.pitch_buf.append(display_pitch)
             self.yaw_buf.append(display_yaw)
 
-            self._euler_count += 1
-            self._update_hz("_euler_count", "_euler_last_count_time", "euler_hz")
+            self._update_hz("euler")
 
     def snapshot(self):
         with self.lock:
+            now_ns = time.monotonic_ns()
             return {
                 "last_any_msg_time": self.last_any_msg_time,
+
+                "topic_rates": {
+                    key: {
+                        "rx": self._rx_rates[key].snapshot(now_ns),
+                        "processed": self._processed_rates[key].snapshot(now_ns),
+                    }
+                    for key in ("imu", "mag", "euler")
+                },
 
                 "imu_hz": self.imu_hz,
                 "mag_hz": self.mag_hz,
@@ -415,15 +518,26 @@ class ImuDashboardNode(Node):
 
         self.config = load_config_from_ros_params(self)
         self.state = ImuDashboardState(self.config)
+        # The default callback group serializes these callbacks. Each topic
+        # gets its own monotonic deadline; no topic uses another topic's quota.
+        self._next_process_ns = {"imu": None, "mag": None, "euler": None}
 
         self.create_subscription(Imu, self.config.imu_topic, self.imu_callback, 10)
         self.create_subscription(MagneticField, self.config.mag_topic, self.mag_callback, 10)
         self.create_subscription(Vector3Stamped, self.config.euler_topic, self.euler_callback, 10)
 
-        self.get_logger().info("ROS 2 IMU Dashboard Monitor started")
+        self.get_logger().info(
+            f"ROS 2 IMU Dashboard Monitor started (build {DASHBOARD_BUILD})"
+        )
         self.get_logger().info(f"Subscribing to IMU   : {self.config.imu_topic}")
         self.get_logger().info(f"Subscribing to Mag   : {self.config.mag_topic}")
         self.get_logger().info(f"Subscribing to Euler : {self.config.euler_topic}")
+        self.get_logger().info(
+            f"Processing cap: {MAX_TOPIC_PROCESS_HZ} Hz per topic; "
+            "excess samples skipped. RX = callback arrivals before the cap; "
+            "Processed = actual data updates. Neither is GUI FPS. "
+            "Publisher rate and DDS reception are unchanged."
+        )
         self.get_logger().info(
             "Euler options: "
             f"rad_to_deg={self.config.euler_rad_to_deg}, "
@@ -433,14 +547,33 @@ class ImuDashboardNode(Node):
             f"alpha={self.config.euler_smooth_alpha}"
         )
 
+    def _accept_sample(self, topic_key):
+        """Accept at most one sample per 10 ms for this subscription.
+
+        Wall-clock changes cannot bypass the cap. After a delay, accept only
+        one sample and start a new interval; never process a catch-up burst.
+        """
+        now_ns = time.monotonic_ns()
+        next_ns = self._next_process_ns[topic_key]
+        if next_ns is not None and now_ns < next_ns:
+            return False
+        self._next_process_ns[topic_key] = now_ns + MIN_TOPIC_PROCESS_INTERVAL_NS
+        return True
+
     def imu_callback(self, msg):
-        self.state.update_imu(msg)
+        self.state.record_rx("imu")
+        if self._accept_sample("imu"):
+            self.state.update_imu(msg)
 
     def mag_callback(self, msg):
-        self.state.update_mag(msg)
+        self.state.record_rx("mag")
+        if self._accept_sample("mag"):
+            self.state.update_mag(msg)
 
     def euler_callback(self, msg):
-        self.state.update_euler(msg)
+        self.state.record_rx("euler")
+        if self._accept_sample("euler"):
+            self.state.update_euler(msg)
 
 
 # ============================================================
@@ -463,7 +596,7 @@ class MetricCard(tk.Frame):
             bg="#111827",
             anchor="w",
         )
-        self.title_label.pack(fill="x", padx=12, pady=(8, 2))
+        self.title_label.pack(fill="x", padx=12, pady=(6, 2))
 
         self.value_label = tk.Label(
             self,
@@ -482,8 +615,22 @@ class MetricCard(tk.Frame):
             fg="#7C8EA3",
             bg="#111827",
             anchor="w",
+            width=1,
         )
-        self.subtitle_label.pack(fill="x", padx=12, pady=(0, 8))
+        self.subtitle_label.pack(fill="x", padx=12)
+
+        self.rate_label = tk.Label(
+            self,
+            text="RX: waiting\nProcessed: waiting",
+            font=("Segoe UI", 9),
+            fg="#B8CADB",
+            bg="#111827",
+            anchor="w",
+            justify="left",
+            width=1,
+            height=2,
+        )
+        self.rate_label.pack(fill="x", padx=12, pady=(0, 6))
 
     def set_value(self, value, subtitle=None, color=None):
         self.value_label.config(text=value)
@@ -491,6 +638,15 @@ class MetricCard(tk.Frame):
             self.subtitle_label.config(text=subtitle)
         if color is not None:
             self.value_label.config(fg=color)
+
+    def set_rates(self, rates):
+        self.rate_label.config(
+            text=(
+                format_rate_text("RX", rates["rx"])
+                + "\n"
+                + format_rate_text("Processed", rates["processed"])
+            )
+        )
 
 
 class ValueBar(tk.Frame):
@@ -539,7 +695,7 @@ class ValueBar(tk.Frame):
         self.canvas.delete("all")
 
         w = max(self.canvas.winfo_width(), 80)
-        h = 13
+        h = int(self.canvas.cget("height"))
 
         self.canvas.create_rectangle(0, 0, w, h, fill="#1C2A3A", outline="")
 
@@ -588,6 +744,8 @@ class RpyPlot(tk.Frame):
 
         self.fig = Figure(figsize=(7, 3.0), dpi=100)
         self.ax = self.fig.add_subplot(111)
+        # Leave room for x-axis tick labels when the window is short.
+        self.fig.subplots_adjust(bottom=0.20)
 
         self.fig.patch.set_facecolor("#101827")
         self.ax.set_facecolor("#0B1220")
@@ -651,33 +809,54 @@ class ImuDashboardUI:
 
     def build_ui(self):
         header = tk.Frame(self.root, bg="#0B1220")
-        header.pack(fill="x", padx=18, pady=(12, 6))
+        header.pack(fill="x", padx=18, pady=(8, 4))
 
-        tk.Label(
+        header_title = tk.Label(
             header,
             text=self.config.header_title,
             font=("Segoe UI", 22, "bold"),
             fg="#FFFFFF",
             bg="#0B1220",
             anchor="w",
-        ).pack(side="left")
+        )
+        header_title.pack(side="left")
 
         self.header_info = tk.Label(
             header,
-            text="ROS 2 Live Monitor",
-            font=("Consolas", 10),
+            text=f"Processing limit: {MAX_TOPIC_PROCESS_HZ} Hz / topic",
+            font=("Segoe UI", 9),
             fg="#8CA3B8",
             bg="#0B1220",
             anchor="e",
+            justify="right",
         )
         self.header_info.pack(side="right")
+
+        rate_legend = tk.Label(
+            self.root,
+            text=(
+                "RX = received by this app  |  Processed = data updates  |  "
+                "Limit applies to processing; Hz is not GUI FPS"
+            ),
+            font=("Segoe UI", 9),
+            fg="#8CA3B8",
+            bg="#0B1220",
+            anchor="w",
+            justify="left",
+            width=1,
+        )
+        rate_legend.pack(fill="x", padx=18, pady=(0, 4))
+        rate_legend.bind(
+            "<Configure>",
+            lambda event: rate_legend.config(wraplength=max(1, event.width)),
+        )
 
         mid = tk.Frame(self.root, bg="#0B1220")
         mid.pack(fill="both", expand=False, padx=18, pady=(0, 8))
 
-        mid.grid_columnconfigure(0, weight=1)
-        mid.grid_columnconfigure(1, weight=1)
-        mid.grid_columnconfigure(2, weight=1)
+        mid.grid_columnconfigure(0, weight=1, uniform="metrics")
+        mid.grid_columnconfigure(1, weight=1, uniform="metrics")
+        mid.grid_columnconfigure(2, weight=1, uniform="metrics")
 
         acc_sec = Section(mid, "3-Axis Acceleration")
         gyro_sec = Section(mid, "3-Axis Angular Velocity")
@@ -693,8 +872,8 @@ class ImuDashboardUI:
         self.acc_mag = MetricCard(acc_sec, "Magnitude", "-- m/s²", "sqrt(ax² + ay² + az²)")
 
         for widget in [self.acc_x, self.acc_y, self.acc_z]:
-            widget.pack(fill="x", padx=12, pady=(8, 3))
-        self.acc_mag.pack(fill="x", padx=12, pady=(10, 10))
+            widget.pack(fill="x", padx=12, pady=(5, 2))
+        self.acc_mag.pack(fill="x", padx=12, pady=(6, 6))
 
         self.gyro_x = ValueBar(gyro_sec, "Angular Velocity X", "rad/s", -2, 2)
         self.gyro_y = ValueBar(gyro_sec, "Angular Velocity Y", "rad/s", -2, 2)
@@ -702,8 +881,8 @@ class ImuDashboardUI:
         self.gyro_mag = MetricCard(gyro_sec, "Magnitude", "-- rad/s", "sqrt(wx² + wy² + wz²)")
 
         for widget in [self.gyro_x, self.gyro_y, self.gyro_z]:
-            widget.pack(fill="x", padx=12, pady=(8, 3))
-        self.gyro_mag.pack(fill="x", padx=12, pady=(10, 10))
+            widget.pack(fill="x", padx=12, pady=(5, 2))
+        self.gyro_mag.pack(fill="x", padx=12, pady=(6, 6))
 
         self.mag_x = ValueBar(mag_sec, "Magnetic Field X", "T", -0.0001, 0.0001)
         self.mag_y = ValueBar(mag_sec, "Magnetic Field Y", "T", -0.0001, 0.0001)
@@ -711,18 +890,67 @@ class ImuDashboardUI:
         self.mag_mag = MetricCard(mag_sec, "Magnitude", "-- T", "sqrt(mx² + my² + mz²)")
 
         for widget in [self.mag_x, self.mag_y, self.mag_z]:
-            widget.pack(fill="x", padx=12, pady=(8, 3))
-        self.mag_mag.pack(fill="x", padx=12, pady=(10, 10))
+            widget.pack(fill="x", padx=12, pady=(5, 2))
+        self.mag_mag.pack(fill="x", padx=12, pady=(6, 6))
 
         plot_sec = Section(self.root, "Roll / Pitch / Yaw Live Plot")
         plot_sec.pack(fill="both", expand=True, padx=18, pady=(0, 14))
 
+        self.euler_rate_info = tk.Label(
+            plot_sec,
+            text="RX: waiting | Processed: waiting",
+            font=("Segoe UI", 9),
+            fg="#B8CADB",
+            bg="#101827",
+            anchor="w",
+            width=1,
+        )
+        self.euler_rate_info.pack(fill="x", padx=12, pady=(2, 0))
+
         self.rpy_plot = RpyPlot(plot_sec, self.config)
         self.rpy_plot.pack(fill="both", expand=True, padx=6, pady=6)
+
+        # Keep the rate labels and plot usable at the existing minimum size.
+        # A resize only changes spacing/labels, never the update intervals.
+        self._layout_mode = None
+
+        def adjust_layout(event):
+            if event.widget is not self.root:
+                return
+            compact = event.height < 540
+            narrow = event.width < 900
+            mode = (compact, narrow)
+            if mode == self._layout_mode:
+                return
+            self._layout_mode = mode
+
+            header_title.config(font=("Segoe UI", 16 if compact else 22, "bold"))
+            header.pack_configure(pady=(6, 2) if compact else (8, 4))
+            mid.pack_configure(pady=(0, 4) if compact else (0, 8))
+            plot_sec.pack_configure(pady=(0, 6) if compact else (0, 14))
+            self.rpy_plot.pack_configure(pady=2 if compact else 6)
+
+            for bar in (
+                self.acc_x, self.acc_y, self.acc_z,
+                self.gyro_x, self.gyro_y, self.gyro_z,
+                self.mag_x, self.mag_y, self.mag_z,
+            ):
+                bar.pack_configure(pady=(0, 1) if compact else (5, 2))
+                bar.canvas.config(height=7 if compact else 13)
+                bar.canvas.pack_configure(pady=(0, 0) if compact else (4, 0))
+                bar.label_title.config(text=bar.title.rsplit(" ", 1)[-1] if narrow else bar.title)
+            for card in (self.acc_mag, self.gyro_mag, self.mag_mag):
+                card.pack_configure(pady=(2, 2) if compact else (6, 6))
+                card.title_label.pack_configure(pady=(2, 0) if compact else (6, 2))
+                card.rate_label.pack_configure(pady=(0, 2) if compact else (0, 6))
+                card.value_label.config(font=("Consolas", 13 if compact or narrow else 16, "bold"))
+
+        self.root.bind("<Configure>", adjust_layout, add="+")
 
     def update_ui(self):
         data = self.state.snapshot()
         now = time.time()
+        rates = data["topic_rates"]
 
         ax = data["acc"]["x"]
         ay = data["acc"]["y"]
@@ -745,23 +973,35 @@ class ImuDashboardUI:
         self.acc_z.update_value(az)
         self.acc_mag.set_value(
             f"{acc_mag:.3f} m/s²",
-            f"{self.config.imu_topic} | {data['imu_hz']:.1f} Hz",
+            self.config.imu_topic,
         )
+        self.acc_mag.set_rates(rates["imu"])
 
         self.gyro_x.update_value(wx)
         self.gyro_y.update_value(wy)
         self.gyro_z.update_value(wz)
         self.gyro_mag.set_value(
             f"{gyro_mag:.5f} rad/s",
-            f"{self.config.imu_topic} | {data['imu_hz']:.1f} Hz",
+            self.config.imu_topic,
         )
+        self.gyro_mag.set_rates(rates["imu"])
 
         self.mag_x.update_value(mx)
         self.mag_y.update_value(my)
         self.mag_z.update_value(mz)
         self.mag_mag.set_value(
             f"{mag_mag:.8f} T",
-            f"{self.config.mag_topic} | {data['mag_hz']:.1f} Hz",
+            self.config.mag_topic,
+        )
+        self.mag_mag.set_rates(rates["mag"])
+
+        self.euler_rate_info.config(
+            text=(
+                format_rate_text("RX", rates["euler"]["rx"])
+                + " | "
+                + format_rate_text("Processed", rates["euler"]["processed"])
+                + f" | {self.config.euler_topic}"
+            )
         )
 
         if (now - self._last_plot_update) * 1000.0 >= self.config.plot_update_ms:
@@ -772,18 +1012,21 @@ class ImuDashboardUI:
             )
             self._last_plot_update = now
 
-        if data["last_any_msg_time"] > 0:
-            age = now - data["last_any_msg_time"]
-            self.header_info.config(
-                text=(
-                    f"IMU {data['imu_hz']:.1f} Hz | "
-                    f"Mag {data['mag_hz']:.1f} Hz | "
-                    f"Euler {data['euler_hz']:.1f} Hz | "
-                    f"Last {age:.1f}s"
-                )
+        rx_ages = [
+            rates[key]["rx"]["age_sec"]
+            for key in ("imu", "mag", "euler")
+            if rates[key]["rx"]["age_sec"] is not None
+        ]
+        rx_status = (
+            f"Last RX: {min(rx_ages):.1f}s ago"
+            if rx_ages else "Waiting for ROS 2 topics..."
+        )
+        self.header_info.config(
+            text=(
+                f"Processing limit: {MAX_TOPIC_PROCESS_HZ} Hz / topic\n"
+                f"{rx_status}"
             )
-        else:
-            self.header_info.config(text="Waiting for ROS 2 topics...")
+        )
 
         self.root.after(self.config.ui_update_ms, self.update_ui)
 
