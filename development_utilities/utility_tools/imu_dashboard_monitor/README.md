@@ -7,7 +7,7 @@ This sample subscribes to acceleration, angular velocity, magnetic field, and Eu
 It is intended for demos, sensor bring-up, and visual monitoring of sampled ROS 2 data. This build separates received message rate from processed data rate and applies a fixed processing limit to each input subscription.
 
 <p align="center">
-  <img src="../../../img/core_techniques/imuDashboard.jpg" width="50%" />
+  <img src="../../../img/core_techniques/imuDashboard.png" width="50%" />
 </p>
 
 ---
